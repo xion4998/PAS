@@ -20,10 +20,10 @@ const dbSet = (p, val) => { try { if (fdb) set(ref(fdb, p), val); } catch (e) {}
 
 const EDIT_PASSWORD = "003"; // 수정 비밀번호
 
-const ZONES = ["상부", "하부", "B", "C", "D", "P", "T", "W", "Z"];
+const ZONES = ["상부", "하부", "B", "C", "D", "P/Z", "T", "W", "V"];
 const ZONE_COLORS = {
   "상부": "#7c3aed", "하부": "#2563eb", "B": "#ea580c", "C": "#0891b2",
-  "D": "#dc2626", "P": "#059669", "T": "#db2777", "W": "#65a30d", "Z": "#d97706",
+  "D": "#dc2626", "P/Z": "#059669", "T": "#db2777", "W": "#65a30d", "V": "#6366f1",
 };
 
 try {
@@ -34,7 +34,14 @@ try {
 } catch (e) {}
 
 const initData = () => {
-  try { const s = localStorage.getItem("pas_v1_data"); if (s) return JSON.parse(s); } catch (e) {}
+  try { const s = localStorage.getItem("pas_v1_data");
+    if (s) {
+      const d = JSON.parse(s);
+      if (d["P"] !== undefined && d["P/Z"] === undefined) { d["P/Z"] = d["P"]; delete d["P"]; }
+      if (d["Z"] !== undefined && d["V"] === undefined) { d["V"] = d["Z"]; delete d["Z"]; }
+      if (d["V"] === undefined) d["V"] = { done: "", picking: false };
+      return d;
+    } } catch (e) {}
   const d = {}; ZONES.forEach(z => { d[z] = { done: "", picking: false }; }); return d;
 };
 const initTotal = () => { try { return parseInt(localStorage.getItem("pas_v1_total")) || 100; } catch (e) { return 100; } };
@@ -83,7 +90,7 @@ export default function App() {
   const saveData = (d) => { if (!editable) return; setData(d); try { localStorage.setItem("pas_v1_data", JSON.stringify(d)); } catch (e) {} dbSet("pas/data", d); };
   const saveTotalBatches = (n) => { if (!editable) return; setTotalBatches(n); setTempTotal(String(n)); try { localStorage.setItem("pas_v1_total", String(n)); } catch (e) {} dbSet("pas/total", n); };
   const applyTotal = () => { const n = parseInt(tempTotal); if (!isNaN(n) && n > 0) saveTotalBatches(n); };
-  const selectBatch = (b) => { setActiveBatch(b); saveData({ ...data, [activeZone]: { ...data[activeZone], done: b } }); setTimeout(() => inputPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50); };
+  const selectBatch = (b) => { setActiveBatch(b); saveData({ ...data, [activeZone]: { ...data[activeZone], done: b } }); setTimeout(() => inputPanelRef.current && inputPanelRef.current.scrollIntoView({ behavior: "smooth", block: "center" }), 50); };
   const handleDoneChange = (zone, val) => { const num = val === "" ? "" : Math.min(totalBatches, Math.max(0, parseInt(val) || 0)); saveData({ ...data, [zone]: { ...data[zone], done: num } }); };
   const togglePicking = (zone) => {
     const newPicking = !data[zone].picking;
@@ -239,8 +246,8 @@ export default function App() {
                 <div style={{ height: 4, background: "#e2e8f0", borderRadius: 2, margin: "6px 0 4px" }}><div style={{ height: 4, borderRadius: 2, background: color, width: `${pct}%`, transition: "width 0.4s" }} /></div>
                 <div style={{ fontSize: 10, color: S.textSub, marginBottom: 6 }}>{done} / {totalBatches}</div>
               </button>
-              <button onClick={() => togglePicking(z)} style={{ width: "100%", fontSize: 10, fontWeight: 800, padding: "5px 0", borderRadius: 7, cursor: "pointer", transition: "all 0.15s", background: isBul ? "#dcfce7" : isPicking ? "#fef9c3" : "#f8fafc", border: `1.5px solid ${isBul ? "#86efac" : isPicking ? "#fde047" : "#e2e8f0"}`, color: isBul ? "#15803d" : isPicking ? "#a16207" : "#94a3b8" }}>
-                {isBul ? "✓ 불출완료" : isPicking ? "✓ 피킹완료" : "피킹완료"}
+              <button onClick={() => togglePicking(z)} style={{ width: "100%", fontSize: 10, fontWeight: 800, padding: "5px 0", borderRadius: 7, cursor: "pointer", transition: "all 0.15s", background: isPicking ? "#dcfce7" : "#f8fafc", border: `1.5px solid ${isPicking ? "#86efac" : "#e2e8f0"}`, color: isPicking ? "#15803d" : "#94a3b8" }}>
+                {isPicking ? "✓ 피킹완료" : "피킹완료"}
               </button>
             </div>
           );
