@@ -99,15 +99,14 @@ export default function App() {
 
   const inputPanelRef = useRef(null);
 
-  const saveData = (d, zone) => { if (!editable) return; setData(d); try { localStorage.setItem("pas_v1_data", JSON.stringify(d)); } catch (e) {}
-    if (zone && d[zone]) { dbSet(`pas/data/${zone}`, d[zone]); } else { dbSet("pas/data", d); } };
+  const saveData = (d) => { if (!editable) return; setData(d); try { localStorage.setItem("pas_v1_data", JSON.stringify(d)); } catch (e) {} dbSet("pas/data", d); };
   const saveTotalBatches = (n) => { if (!editable) return; setTotalBatches(n); setTempTotal(String(n)); try { localStorage.setItem("pas_v1_total", String(n)); } catch (e) {} dbSet("pas/total", n); };
   const applyTotal = () => { const n = parseInt(tempTotal); if (!isNaN(n) && n > 0) saveTotalBatches(n); };
   const selectBatch = (b) => { setActiveBatch(b); saveData({ ...data, [activeZone]: { ...data[activeZone], done: b } }); setTimeout(() => inputPanelRef.current && inputPanelRef.current.scrollIntoView({ behavior: "smooth", block: "center" }), 50); };
-  const handleDoneChange = (zone, val) => { const num = val === "" ? "" : Math.min(totalBatches, Math.max(0, parseInt(val) || 0)); saveData({ ...data, [zone]: { ...data[zone], done: num } }, zone); };
+  const handleDoneChange = (zone, val) => { const num = val === "" ? "" : Math.min(totalBatches, Math.max(0, parseInt(val) || 0)); saveData({ ...data, [zone]: { ...data[zone], done: num } }); };
   const togglePicking = (zone) => {
     const newPicking = !data[zone].picking;
-    saveData({ ...data, [zone]: { ...data[zone], picking: newPicking, done: newPicking ? totalBatches : data[zone].done } }, zone);
+    saveData({ ...data, [zone]: { ...data[zone], picking: newPicking, done: newPicking ? totalBatches : data[zone].done } });
   };
   const [resetConfirm, setResetConfirm] = useState(false);
   const resetAll = () => {
