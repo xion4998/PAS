@@ -131,7 +131,10 @@ export default function App() {
     subs.push(onValue(ref(fdb, "pas/data"), snap => {
       const v = snap.val();
       if (v) {
-        setData(v);
+        // Firebase 키 P_Z → P/Z 변환
+        const converted = {};
+        Object.keys(v).forEach(k => { converted[k.replace(/_/g, "/")] = v[k]; });
+        setData(converted);
         try { localStorage.setItem("pas_v1_data", JSON.stringify(v)); } catch (e) {}
       }
     }));
@@ -148,10 +151,11 @@ export default function App() {
   }, [zoneTotals, totalBatches]);
 
   // 대시보드용 요약 실시간 전송
-  // data 변경 시 Firebase 자동 동기화
+    // data 변경 시 Firebase 자동 동기화
   useEffect(() => {
     ZONES.forEach(z => {
-      if (data[z]) dbSet(`pas/data/${z}`, data[z]);
+      const fbKey = z.replace(/\//g, "_");
+      if (data[z]) dbSet(`pas/data/${fbKey}`, data[z]);
     });
   }, [data]);
 
