@@ -105,11 +105,11 @@ export default function App() {
     if (!isEditable) return; setData(d); try { localStorage.setItem("pas_v1_data", JSON.stringify(d)); } catch (e) {} dbSet("pas/data", d); };
   const saveTotalBatches = (n) => { if (!editable) return; setTotalBatches(n); setTempTotal(String(n)); try { localStorage.setItem("pas_v1_total", String(n)); } catch (e) {} dbSet("pas/total", n); };
   const applyTotal = () => { const n = parseInt(tempTotal); if (!isNaN(n) && n > 0) saveTotalBatches(n); };
-  const selectBatch = (b) => { setActiveBatch(b); saveData({ ...data, [activeZone]: { ...data[activeZone], done: b } }); setTimeout(() => inputPanelRef.current && inputPanelRef.current.scrollIntoView({ behavior: "smooth", block: "center" }), 50); };
-  const handleDoneChange = (zone, val) => { const num = val === "" ? "" : Math.min(totalBatches, Math.max(0, parseInt(val) || 0)); saveData({ ...data, [zone]: { ...data[zone], done: num } }); };
+  const selectBatch = (b) => { setActiveBatch(b); saveData({ ...data, [activeZone]: { ...(data[activeZone]||{}), done: b } }); setTimeout(() => inputPanelRef.current && inputPanelRef.current.scrollIntoView({ behavior: "smooth", block: "center" }), 50); };
+  const handleDoneChange = (zone, val) => { const num = val === "" ? "" : Math.min(totalBatches, Math.max(0, parseInt(val) || 0)); saveData({ ...data, [zone]: { ...(data[zone]||{}), done: num } }); };
   const togglePicking = (zone) => {
     const newPicking = !(data[zone]||{done:"",picking:false}).picking;
-    saveData({ ...data, [zone]: { ...data[zone], picking: newPicking, done: newPicking ? totalBatches : (data[zone]||{done:"",picking:false}).done } });
+    saveData({ ...data, [zone]: { ...(data[zone]||{}), picking: newPicking, done: newPicking ? totalBatches : (data[zone]||{done:"",picking:false}).done } });
   };
   const [resetConfirm, setResetConfirm] = useState(false);
   const resetAll = () => {
@@ -119,7 +119,12 @@ export default function App() {
 
   const zoneTotals = useMemo(() => {
     const out = {};
-    ZONES.forEach(z => { const done = (data[z]||{done:"",picking:false}).done === "" ? 0 : Number((data[z]||{done:"",picking:false}).done); out[z] = { done, pct: totalBatches > 0 ? Math.round((done / totalBatches) * 100) : 0 }; });
+    ZONES.forEach(z => {
+      const zd = data[z] || { done: "", picking: false };
+      const rawDone = zd.done;
+      const done = (rawDone === "" || rawDone === undefined || rawDone === null) ? 0 : (Number(rawDone) || 0);
+      out[z] = { done, pct: totalBatches > 0 ? Math.min(100, Math.round((done / totalBatches) * 100)) : 0 };
+    });
     return out;
   }, [data, totalBatches]);
 
