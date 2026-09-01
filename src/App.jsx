@@ -16,7 +16,17 @@ const firebaseConfig = {
 
 let fdb = null;
 try { fdb = getDatabase(initializeApp(firebaseConfig)); } catch (e) {}
-const dbSet = (p, val) => { try { if (fdb) set(ref(fdb, p), val); } catch (e) {} };
+const dbSet = (p, val) => { 
+  try { 
+    if (fdb) {
+      set(ref(fdb, p), val)
+        .then(() => console.log("Firebase write OK:", p))
+        .catch(e => console.error("Firebase write FAIL:", p, e));
+    } else {
+      console.error("fdb is null!");
+    }
+  } catch (e) { console.error("dbSet error:", e); } 
+};
 
 const EDIT_PASSWORD = "003"; // 수정 비밀번호
 
@@ -87,7 +97,12 @@ export default function App() {
 
   const inputPanelRef = useRef(null);
 
-  const saveData = (d) => { if (!editable) return; setData(d); try { localStorage.setItem("pas_v1_data", JSON.stringify(d)); } catch (e) {} dbSet("pas/data", d); };
+  const editableRef = useRef(editable);
+  useEffect(() => { editableRef.current = editable; }, [editable]);
+
+  const saveData = (d) => {
+    const isEditable = editable || (typeof localStorage !== "undefined" && localStorage.getItem("pas_editable") === "true");
+    if (!isEditable) return; setData(d); try { localStorage.setItem("pas_v1_data", JSON.stringify(d)); } catch (e) {} dbSet("pas/data", d); };
   const saveTotalBatches = (n) => { if (!editable) return; setTotalBatches(n); setTempTotal(String(n)); try { localStorage.setItem("pas_v1_total", String(n)); } catch (e) {} dbSet("pas/total", n); };
   const applyTotal = () => { const n = parseInt(tempTotal); if (!isNaN(n) && n > 0) saveTotalBatches(n); };
   const selectBatch = (b) => { setActiveBatch(b); saveData({ ...data, [activeZone]: { ...data[activeZone], done: b } }); setTimeout(() => inputPanelRef.current && inputPanelRef.current.scrollIntoView({ behavior: "smooth", block: "center" }), 50); };
@@ -133,6 +148,13 @@ export default function App() {
   }, [zoneTotals, totalBatches]);
 
   // 대시보드용 요약 실시간 전송
+  // data 변경 시 Firebase 자동 동기화
+  useEffect(() => {
+    ZONES.forEach(z => {
+      if (data[z]) dbSet(`pas/data/${z}`, data[z]);
+    });
+  }, [data]);
+
   useEffect(() => {
     dbSet("summary/pas", { pct: grand.pct, ts: Date.now() });
   }, [grand.pct, data]);
