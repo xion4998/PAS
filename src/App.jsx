@@ -108,8 +108,8 @@ export default function App() {
   const selectBatch = (b) => { setActiveBatch(b); saveData({ ...data, [activeZone]: { ...data[activeZone], done: b } }); setTimeout(() => inputPanelRef.current && inputPanelRef.current.scrollIntoView({ behavior: "smooth", block: "center" }), 50); };
   const handleDoneChange = (zone, val) => { const num = val === "" ? "" : Math.min(totalBatches, Math.max(0, parseInt(val) || 0)); saveData({ ...data, [zone]: { ...data[zone], done: num } }); };
   const togglePicking = (zone) => {
-    const newPicking = !data[zone].picking;
-    saveData({ ...data, [zone]: { ...data[zone], picking: newPicking, done: newPicking ? totalBatches : data[zone].done } });
+    const newPicking = !(data[zone]||{done:"",picking:false}).picking;
+    saveData({ ...data, [zone]: { ...data[zone], picking: newPicking, done: newPicking ? totalBatches : (data[zone]||{done:"",picking:false}).done } });
   };
   const [resetConfirm, setResetConfirm] = useState(false);
   const resetAll = () => {
@@ -119,7 +119,7 @@ export default function App() {
 
   const zoneTotals = useMemo(() => {
     const out = {};
-    ZONES.forEach(z => { const done = data[z].done === "" ? 0 : Number(data[z].done); out[z] = { done, pct: totalBatches > 0 ? Math.round((done / totalBatches) * 100) : 0 }; });
+    ZONES.forEach(z => { const done = (data[z]||{done:"",picking:false}).done === "" ? 0 : Number((data[z]||{done:"",picking:false}).done); out[z] = { done, pct: totalBatches > 0 ? Math.round((done / totalBatches) * 100) : 0 }; });
     return out;
   }, [data, totalBatches]);
 
@@ -159,7 +159,7 @@ export default function App() {
     dbSet("summary/pas", { pct: grand.pct, ts: Date.now() });
   }, [grand.pct, data]);
 
-  const currentDone = data[activeZone].done;
+  const currentDone = (data[activeZone]||{done:"",picking:false}).done;
   const currentPct = currentDone !== "" && totalBatches > 0 ? Math.round((Number(currentDone) / totalBatches) * 100) : null;
 
   const getSummaryText = () => {
@@ -171,7 +171,7 @@ export default function App() {
     const zoneStatus = {};
     ZONES.forEach(z => {
       const { done, pct } = zoneTotals[z];
-      if (data[z].picking) zoneStatus[z] = "완료";
+      if ((data[z]||{done:"",picking:false}).picking) zoneStatus[z] = "완료";
       else if (pct === 100) zoneStatus[z] = "불출완료";
       else if (done > 0) zoneStatus[z] = `${done}배치 불출중`;
       else zoneStatus[z] = "미불출";
@@ -259,7 +259,7 @@ export default function App() {
       {/* Zone Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
         {ZONES.map(z => {
-          const { done, pct } = zoneTotals[z]; const isActive = z === activeZone; const isPicking = data[z].picking; const isBul = pct === 100 && !isPicking; const color = ZONE_COLORS[z];
+          const { done, pct } = zoneTotals[z]; const isActive = z === activeZone; const isPicking = (data[z]||{done:"",picking:false}).picking; const isBul = pct === 100 && !isPicking; const color = ZONE_COLORS[z];
           return (
             <div key={z} style={{ background: isActive ? color+"12" : S.card, border: `1.5px solid ${isActive ? color : S.border}`, borderRadius: 12, padding: "10px 8px", textAlign: "center", boxShadow: S.shadow }}>
               <button onClick={() => setActiveZone(z)} style={{ background: "none", border: "none", cursor: "pointer", width: "100%", padding: 0 }}>
@@ -287,7 +287,7 @@ export default function App() {
         {/* 배치 그리드 - 10개씩 행 */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(10,1fr)", gap: 3, marginBottom: 14 }}>
           {Array.from({ length: totalBatches }, (_, i) => i + 1).map(b => {
-            const done = data[activeZone].done; const completed = done !== "" && b <= Number(done); const isAct = activeBatch === b;
+            const done = (data[activeZone]||{done:"",picking:false}).done; const completed = done !== "" && b <= Number(done); const isAct = activeBatch === b;
             return (
               <button key={b} onClick={() => selectBatch(b)} style={{ background: isAct ? ZONE_COLORS[activeZone] : completed ? ZONE_COLORS[activeZone]+"25" : S.inputBg, border: `1px solid ${isAct ? ZONE_COLORS[activeZone] : completed ? ZONE_COLORS[activeZone]+"55" : S.border}`, borderRadius: 5, padding: "5px 1px", cursor: "pointer", color: isAct ? "#fff" : completed ? ZONE_COLORS[activeZone] : S.textSub, fontSize: 10, fontWeight: 700, transition: "all 0.1s", fontFamily: "inherit" }}>{b}</button>
             );
@@ -317,24 +317,24 @@ export default function App() {
           style={{ width: "100%", background: copied ? "#059669" : "linear-gradient(135deg,#059669,#d97706)", border: "none", borderRadius: 8, padding: "10px 0", cursor: "pointer", color: "#fff", fontSize: 13, fontWeight: 700, marginBottom: 14, fontFamily: "inherit" }}>
           {copied ? "✓ 복사됨!" : "📤 현황 공유"}
         </button>
-        {ZONES.filter(z => zoneTotals[z].pct === 100 && !data[z].picking).length > 0 && (
+        {ZONES.filter(z => zoneTotals[z].pct === 100 && !(data[z]||{done:"",picking:false}).picking).length > 0 && (
           <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
             <span style={{ fontSize: 16 }}>✅</span>
             <div><div style={{ fontSize: 11, color: "#15803d", fontWeight: 700 }}>불출완료</div>
-              <div style={{ fontSize: 14, fontWeight: 900 }}>{ZONES.filter(z => zoneTotals[z].pct === 100 && !data[z].picking).map((z,i,arr) => <span key={z}><span style={{ color: ZONE_COLORS[z] }}>{z.length<=1?z+"존":z}</span>{i<arr.length-1&&<span style={{ color: "#94a3b8" }}> · </span>}</span>)}</div>
+              <div style={{ fontSize: 14, fontWeight: 900 }}>{ZONES.filter(z => zoneTotals[z].pct === 100 && !(data[z]||{done:"",picking:false}).picking).map((z,i,arr) => <span key={z}><span style={{ color: ZONE_COLORS[z] }}>{z.length<=1?z+"존":z}</span>{i<arr.length-1&&<span style={{ color: "#94a3b8" }}> · </span>}</span>)}</div>
             </div>
           </div>
         )}
-        {ZONES.filter(z => data[z].picking).length > 0 && (
+        {ZONES.filter(z => (data[z]||{done:"",picking:false}).picking).length > 0 && (
           <div style={{ background: "#fefce8", border: "1px solid #fde047", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
             <span style={{ fontSize: 16 }}>🟡</span>
             <div><div style={{ fontSize: 11, color: "#a16207", fontWeight: 700 }}>피킹완료</div>
-              <div style={{ fontSize: 14, fontWeight: 900 }}>{ZONES.filter(z => data[z].picking).map((z,i,arr) => <span key={z}><span style={{ color: ZONE_COLORS[z] }}>{z.length<=1?z+"존":z}</span>{i<arr.length-1&&<span style={{ color: "#94a3b8" }}> · </span>}</span>)}</div>
+              <div style={{ fontSize: 14, fontWeight: 900 }}>{ZONES.filter(z => (data[z]||{done:"",picking:false}).picking).map((z,i,arr) => <span key={z}><span style={{ color: ZONE_COLORS[z] }}>{z.length<=1?z+"존":z}</span>{i<arr.length-1&&<span style={{ color: "#94a3b8" }}> · </span>}</span>)}</div>
             </div>
           </div>
         )}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {ZONES.filter(z => !data[z].picking && zoneTotals[z].pct < 100).map(z => {
+          {ZONES.filter(z => !(data[z]||{done:"",picking:false}).picking && zoneTotals[z].pct < 100).map(z => {
             const { done, pct } = zoneTotals[z];
             return (
               <div key={z} style={{ display: "flex", alignItems: "center", gap: 10 }}>
