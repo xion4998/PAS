@@ -106,10 +106,10 @@ export default function App() {
   const saveTotalBatches = (n) => { if (!editable) return; setTotalBatches(n); setTempTotal(String(n)); try { localStorage.setItem("pas_v1_total", String(n)); } catch (e) {} dbSet("pas/total", n); };
   const applyTotal = () => { const n = parseInt(tempTotal); if (!isNaN(n) && n > 0) saveTotalBatches(n); };
   const selectBatch = (b) => { setActiveBatch(b); saveData({ ...data, [activeZone]: { ...(data[activeZone]||{}), done: b } }); setTimeout(() => inputPanelRef.current && inputPanelRef.current.scrollIntoView({ behavior: "smooth", block: "center" }), 50); };
-  const handleDoneChange = (zone, val) => { const num = val === "" ? "" : Math.min(totalBatches, Math.max(0, parseInt(val) || 0)); saveData({ ...data, [zone]: { ...(data[zone]||{}), done: num } }); };
+  const handleDoneChange = (zone, val) => { const num = val === "" ? "" : Math.min(totalBatches, Math.max(0, parseInt(val) || 0)); saveData({ ...data, [zone]: { ...(data[zone]||{}), done: num } }, zone); };
   const togglePicking = (zone) => {
     const newPicking = !(data[zone]||{done:"",picking:false}).picking;
-    saveData({ ...data, [zone]: { ...(data[zone]||{}), picking: newPicking, done: newPicking ? totalBatches : (data[zone]||{done:"",picking:false}).done } });
+    saveData({ ...data, [zone]: { ...(data[zone]||{}), picking: newPicking, done: newPicking ? totalBatches : (data[zone]||{done:"",picking:false}).done } }, zone);
   };
   const [resetConfirm, setResetConfirm] = useState(false);
   const resetAll = () => {
@@ -129,21 +129,26 @@ export default function App() {
   }, [data, totalBatches]);
 
 
+  const isWritingRef = useRef(false);
+
   // Firebase 실시간 구독
   useEffect(() => {
     if (!fdb) return;
     const subs = [];
-    subs.push(onValue(ref(fdb, "pas/data"), snap => {
-      const v = snap.val();
-      if (v) {
-        // Firebase 키 P_Z → P/Z 변환
-        const converted = {};
-        Object.keys(v).forEach(k => { converted[k.replace(/_/g, "/")] = v[k]; });
-        isWritingRef.current = true;
-        setData(converted);
-        try { localStorage.setItem("pas_v1_data", JSON.stringify(v)); } catch (e) {}
-      }
-    }));
+    ZONES.forEach(z => {
+      const fbKey = z.replace(/\//g, "_");
+      subs.push(onValue(ref(fdb, `pas/data/${fbKey}`), snap => {
+        const v = snap.val();
+        if (v) {
+          isWritingRef.current = true;
+          setData(prev => {
+            const next = { ...prev, [z]: v };
+            try { localStorage.setItem("pas_v1_data", JSON.stringify(next)); } catch (e) {}
+            return next;
+          });
+        }
+      }));
+    });
     subs.push(onValue(ref(fdb, "pas/total"), snap => {
       const v = snap.val();
       if (v) { setTotalBatches(v); setTempTotal(String(v)); }
@@ -156,16 +161,7 @@ export default function App() {
     return { pct: totalBatches > 0 ? Math.round((doneAll / (totalBatches * ZONES.length)) * 100) : 0 };
   }, [zoneTotals, totalBatches]);
 
-  const isWritingRef = useRef(false);
 
-  // data 변경 시 Firebase 자동 동기화
-  useEffect(() => {
-    if (isWritingRef.current) { isWritingRef.current = false; return; }
-    ZONES.forEach(z => {
-      const fbKey = z.replace(/\//g, "_");
-      if (data[z]) dbSet(`pas/data/${fbKey}`, data[z]);
-    });
-  }, [data]);
 
   useEffect(() => {
     dbSet("summary/pas", { pct: grand.pct, ts: Date.now() });
