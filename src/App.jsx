@@ -58,13 +58,7 @@ const initTotal = () => { try { return parseInt(localStorage.getItem("pas_v1_tot
 
 function CircleProgress({ percent, color, size = 90 }) {
   const r = (size - 10) / 2, circ = 2 * Math.PI * r, dash = (percent / 100) * circ;
-  // Safari 감지 → Chrome 유도
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  if (isSafari && isIOS) {
-    const url = window.location.href;
-    const chromeUrl = "googlechrome://" + url.replace(/^https?:\/\//, "");
-    return (
+  return (
       <div style={{ minHeight:"100vh", background:"#f0f4f8", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, fontFamily:"'Apple SD Gothic Neo',sans-serif", textAlign:"center" }}>
         <div style={{ fontSize:40, marginBottom:16 }}>🌐</div>
         <div style={{ fontSize:18, fontWeight:800, color:"#0f172a", marginBottom:8 }}>Chrome으로 열어주세요</div>
