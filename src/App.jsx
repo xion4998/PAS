@@ -108,6 +108,14 @@ export default function App() {
       ZONES.forEach(z => { if (d[z]) { const fbKey = z.split("/").join("_"); dbSet("pas/data/" + fbKey, d[z]); } });
     }
   };
+  const saveTotalBatches = (n) => {
+    if (!editable) return;
+    setTotalBatches(n);
+    setTempTotal(String(n));
+    try { localStorage.setItem("pas_v1_total", String(n)); } catch (e) {}
+    dbSet("pas/total", n);
+  };
+  const applyTotal = () => { const n = parseInt(tempTotal); if (!isNaN(n) && n > 0) saveTotalBatches(n); };
   const selectBatch = (b) => { setActiveBatch(b); saveData({ ...data, [activeZone]: { ...(data[activeZone]||{}), done: b } }, activeZone); setTimeout(() => inputPanelRef.current && inputPanelRef.current.scrollIntoView({ behavior: "smooth", block: "center" }), 50); };
   const handleDoneChange = (zone, val) => { const num = val === "" ? "" : Math.min(totalBatches, Math.max(0, parseInt(val) || 0)); saveData({ ...data, [zone]: { ...(data[zone]||{}), done: num } }, zone); };
   const togglePicking = (zone) => {
