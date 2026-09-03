@@ -103,9 +103,9 @@ export default function App() {
     try { localStorage.setItem("pas_v1_data", JSON.stringify(d)); } catch (e) {}
     if (changedZone && d[changedZone]) {
       const fbKey = changedZone.split("/").join("_");
-      dbSet(`pas/data/${fbKey}`, d[changedZone]);
+      dbSet("pas/data/" + fbKey, d[changedZone]);
     } else {
-      ZONES.forEach(z => { if (d[z]) { const fbKey = z.split("/").join("_"); dbSet(`pas/data/${fbKey}`, d[z]); } });
+      ZONES.forEach(z => { if (d[z]) { const fbKey = z.split("/").join("_"); dbSet("pas/data/" + fbKey, d[z]); } });
     }
   };
   const selectBatch = (b) => { setActiveBatch(b); saveData({ ...data, [activeZone]: { ...(data[activeZone]||{}), done: b } }, activeZone); setTimeout(() => inputPanelRef.current && inputPanelRef.current.scrollIntoView({ behavior: "smooth", block: "center" }), 50); };
@@ -140,7 +140,7 @@ export default function App() {
     const subs = [];
     ZONES.forEach(z => {
       const fbKey = z.split("/").join("_");
-      subs.push(onValue(ref(fdb, `pas/data/${fbKey}`), snap => {
+      subs.push(onValue(ref(fdb, "pas/data/" + fbKey), snap => {
         const v = snap.val();
         if (v) {
           isWritingRef.current = true;
