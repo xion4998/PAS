@@ -152,11 +152,12 @@ export default function App() {
         const v = snap.val();
         if (v) {
           isWritingRef.current = true;
-          setData(prev => {
-            const next = { ...prev, [z]: v };
-            try { localStorage.setItem("pas_v1_data", JSON.stringify(next)); } catch (e) {}
-            return next;
-          });
+          setData(prev => ({ ...prev, [z]: v }));
+          try {
+            const saved = localStorage.getItem("pas_v1_data");
+            const cur = saved ? JSON.parse(saved) : {};
+            localStorage.setItem("pas_v1_data", JSON.stringify({ ...cur, [z]: v }));
+          } catch (e) {}
         }
       }));
     });
