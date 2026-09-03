@@ -176,7 +176,7 @@ export default function App() {
 
   useEffect(() => {
     dbSet("summary/pas", { pct: grand.pct, ts: Date.now() });
-  }, [grand.pct, data]);
+  }, [grand.pct]);
 
   const currentDone = (data[activeZone]||{done:"",picking:false}).done;
   const currentPct = currentDone !== "" && totalBatches > 0 ? Math.round((Number(currentDone) / totalBatches) * 100) : null;
