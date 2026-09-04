@@ -146,21 +146,16 @@ export default function App() {
   useEffect(() => {
     if (!fdb) return;
     const subs = [];
-    ZONES.forEach(z => {
-      const fbKey = z.split("/").join("_");
-      subs.push(onValue(ref(fdb, "pas/data/" + fbKey), snap => {
-        const v = snap.val();
-        if (v) {
-          isWritingRef.current = true;
-          setData(prev => ({ ...prev, [z]: v }));
-          try {
-            const saved = localStorage.getItem("pas_v1_data");
-            const cur = saved ? JSON.parse(saved) : {};
-            localStorage.setItem("pas_v1_data", JSON.stringify({ ...cur, [z]: v }));
-          } catch (e) {}
-        }
-      }));
-    });
+    subs.push(onValue(ref(fdb, "pas/data"), snap => {
+      const v = snap.val();
+      if (v) {
+        const converted = {};
+        Object.keys(v).forEach(k => { converted[k.split("_").join("/")] = v[k]; });
+        isWritingRef.current = true;
+        setData(converted);
+        try { localStorage.setItem("pas_v1_data", JSON.stringify(converted)); } catch (e) {}
+      }
+    }));
     subs.push(onValue(ref(fdb, "pas/total"), snap => {
       const v = snap.val();
       if (v) { setTotalBatches(v); setTempTotal(String(v)); }
